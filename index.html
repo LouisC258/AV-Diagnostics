@@ -8,13 +8,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- 引入 Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  
   <style>
-    /* 引入更靚嘅字體 */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    
     body { font-family: 'Inter', sans-serif; }
 
-    /* 自定義動畫 */
     @keyframes slide {
       0% { transform: translateX(0); }
       100% { transform: translateX(calc(100cqw - 4rem)); }
@@ -28,14 +26,9 @@
     .animate-ufo { container-type: inline-size; }
     .ufo-circle { animation: slide 3s linear infinite alternate; }
     
-    /* Tab 切換動畫 */
     .tab-content { display: none; }
-    .tab-content.active { 
-      display: block; 
-      animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; 
-    }
+    .tab-content.active { display: block; animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     
-    /* 鍵盤按鍵亮起特效 */
     .key-pressed { 
       background: linear-gradient(135deg, #3b82f6, #8b5cf6) !important; 
       color: white !important; 
@@ -44,45 +37,57 @@
       border-color: transparent !important;
     }
     
-    /* 灰階漸變 */
     .grayscale-gradient { background: linear-gradient(to right, #000000, #ffffff); }
     
-    /* 投影機/電視牆 對齊網格 */
+    /* FIX: 幾何網格使用 vmin，確保任何解像度下都是正方形，並適應比例 */
     .alignment-grid {
       background-color: #000;
       background-image: 
-        linear-gradient(white 2px, transparent 2px),
-        linear-gradient(90deg, white 2px, transparent 2px),
-        linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px);
-      background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+        linear-gradient(white 1px, transparent 1px),
+        linear-gradient(90deg, white 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.25) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.25) 1px, transparent 1px);
+      background-size: 10vmin 10vmin, 10vmin 10vmin, 2vmin 2vmin, 2vmin 2vmin;
       background-position: center center;
     }
 
-    /* SMPTE 廣播測試圖 */
     .smpte-top { height: 67%; display: flex; }
     .smpte-mid { height: 8%; display: flex; }
     .smpte-bot { height: 25%; display: flex; }
 
-    /* 隱藏捲軸但保留滾動 */
+    /* LED Wall 拼接檢測細網格 */
+    .led-seam-pattern {
+      background-color: #000;
+      background-image: 
+        linear-gradient(45deg, #333 25%, transparent 25%, transparent 75%, #333 75%, #333), 
+        linear-gradient(45deg, #333 25%, transparent 25%, transparent 75%, #333 75%, #333);
+      background-size: 4px 4px;
+      background-position: 0 0, 2px 2px;
+    }
+
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-    /* 驗收狀態 UI */
     .status-btn.selected-pass { @apply bg-emerald-600 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]; }
     .status-btn.selected-fail { @apply bg-red-600 border-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]; }
     .status-btn.selected-na { @apply bg-slate-600 border-slate-500 text-white shadow-[0_0_15px_rgba(100,116,139,0.4)]; }
+    
+    /* 自定義捲軸 */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
   </style>
 </head>
 <body class="min-h-screen bg-slate-950 text-slate-200 overflow-x-hidden relative selection:bg-blue-500/30">
   
-  <!-- 背景環境光暈 -->
   <div class="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[120px] pointer-events-none"></div>
   <div class="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-purple-600/10 blur-[120px] pointer-events-none"></div>
 
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-[999] flex flex-col gap-3 pointer-events-none"></div>
+
   <div class="max-w-6xl mx-auto p-4 md:p-8 relative z-10">
     
-    <!-- Header -->
     <header class="mb-8 flex flex-col md:flex-row items-center justify-between border-b border-slate-800/60 pb-8 gap-6">
       <div class="text-center md:text-left flex flex-col items-center md:items-start">
         <div class="inline-flex items-center justify-center p-2 bg-slate-900/50 rounded-xl border border-white/5 mb-3 backdrop-blur-md shadow-lg">
@@ -107,7 +112,6 @@
         <button onclick="openExportModal()" class="w-full md:w-auto group flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl font-semibold transition-all duration-300 shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.5)] hover:-translate-y-0.5">
           <i data-lucide="file-check-2" class="w-5 h-5 mr-2 group-hover:animate-bounce"></i> 匯出驗收報告 (PDF)
         </button>
-        <!-- 進度條 -->
         <div class="flex items-center gap-2 bg-slate-900/60 px-4 py-2 rounded-lg border border-slate-800 w-full justify-between md:w-auto">
            <span class="text-xs font-medium text-slate-400">驗收進度:</span>
            <span id="overall-progress" class="text-sm font-bold text-blue-400">0 / 8</span>
@@ -115,7 +119,6 @@
       </div>
     </header>
 
-    <!-- 導航 Tabs -->
     <div class="flex overflow-x-auto no-scrollbar gap-2 mb-10 bg-slate-900/40 p-1.5 rounded-2xl text-sm md:text-base border border-slate-700/50 backdrop-blur-md shadow-xl max-w-full">
       <button onclick="switchTab('audio')" id="tab-btn-audio" class="tab-btn flex-1 min-w-[100px] flex items-center justify-center py-3 px-4 rounded-xl font-medium transition-all duration-300 bg-slate-700/80 text-white shadow-md ring-1 ring-white/10 relative">
         <i data-lucide="volume-2" class="w-4 h-4 md:w-5 md:h-5 mr-2"></i> 音頻 <span id="badge-audio" class="absolute top-2 right-2 w-2 h-2 rounded-full bg-slate-600"></span>
@@ -145,7 +148,6 @@
 
     <main class="grid grid-cols-1 lg:grid-cols-4 gap-6">
       
-      <!-- 左側內容區 (佔 3/4) -->
       <div class="lg:col-span-3">
         <!-- ================= 1. 音頻測試 Tab ================= -->
         <div id="tab-audio" class="tab-content active space-y-6">
@@ -205,16 +207,15 @@
               </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                <!-- RTA 頻譜分析 -->
                 <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800 flex flex-col">
                    <div class="flex justify-between items-center mb-3">
                      <span class="text-sm font-semibold text-white flex items-center"><i data-lucide="bar-chart-2" class="w-4 h-4 mr-2 text-blue-400"></i> RTA 頻譜分析</span>
-                     <button id="rta-btn-start" onclick="startRTA()" class="text-[10px] font-bold bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded transition-colors">啟動麥克風</button>
-                     <button id="rta-btn-stop" onclick="stopRTA()" class="hidden text-[10px] font-bold bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded transition-colors">停止擷取</button>
+                     <button id="rta-btn-start" onclick="startRTA()" class="text-[10px] font-bold bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded transition-colors shadow">啟動麥克風</button>
+                     <button id="rta-btn-stop" onclick="stopRTA()" class="hidden text-[10px] font-bold bg-red-600 hover:bg-red-500 text-white px-3 py-1.5 rounded transition-colors shadow">停止擷取</button>
                    </div>
                    <canvas id="rta-canvas" class="w-full h-24 bg-slate-900 rounded-lg border border-slate-700"></canvas>
                 </div>
-                <!-- Delay 延遲計算機 -->
+                
                 <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800 flex flex-col">
                    <span class="text-sm font-semibold text-white flex items-center mb-3"><i data-lucide="calculator" class="w-4 h-4 mr-2 text-blue-400"></i> Audio Delay 計算機</span>
                    <div class="flex gap-2 mb-2">
@@ -227,7 +228,7 @@
             </div>
 
             <div class="mt-8 flex justify-center">
-              <button id="btn-audio-stop" onclick="stopAudio()" disabled class="px-10 py-3 bg-red-500/10 border border-red-500/50 hover:bg-red-600 hover:border-red-600 hover:text-white hover:shadow-[0_0_20px_rgba(220,38,38,0.4)] disabled:opacity-30 disabled:hover:bg-red-500/10 disabled:cursor-not-allowed text-red-400 rounded-xl font-bold transition-all duration-300 flex items-center">
+              <button id="btn-audio-stop" onclick="stopAudioPlayback()" disabled class="px-10 py-3 bg-red-500/10 border border-red-500/50 hover:bg-red-600 hover:border-red-600 hover:text-white hover:shadow-[0_0_20px_rgba(220,38,38,0.4)] disabled:opacity-30 disabled:hover:bg-red-500/10 disabled:cursor-not-allowed text-red-400 rounded-xl font-bold transition-all duration-300 flex items-center">
                 <i data-lucide="square" class="w-5 h-5 mr-2 fill-current"></i> 停止播放
               </button>
             </div>
@@ -247,7 +248,7 @@
               </div>
               <p class="text-slate-400 mb-8 max-w-md mx-auto">點擊下方按鈕允許瀏覽器存取您的視訊及音訊設備，以進行即時硬體診斷。</p>
               <button onclick="startCamTest()" class="px-8 py-4 bg-teal-600 hover:bg-teal-500 text-white rounded-xl font-bold transition-all duration-300 flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(13,148,136,0.3)] hover:-translate-y-1">
-                <i data-lucide="power" class="mr-2 w-5 h-5"></i> 啟動設備測試
+                <i data-lucide="power" class="mr-2 w-5 h-5"></i> 啟 পণ্ডিত動設備測試
               </button>
               <div id="cam-error" class="hidden mt-6 text-red-400 bg-red-950/50 p-4 rounded-xl border border-red-900"></div>
             </div>
@@ -289,9 +290,9 @@
 
         <!-- ================= 3. 顯示器測試 Tab ================= -->
         <div id="tab-display" class="tab-content space-y-6">
-          <div id="display-container" class="bg-slate-900/60 p-8 rounded-2xl border border-slate-700/50 backdrop-blur-xl shadow-2xl relative">
+          <div id="display-container" class="bg-slate-900/60 p-8 rounded-2xl border border-slate-700/50 backdrop-blur-xl shadow-2xl relative overflow-hidden">
             
-            <div id="display-header" class="flex justify-between items-center mb-8">
+            <div id="display-header" class="flex justify-between items-center mb-8 relative z-10">
               <h3 class="text-2xl font-bold flex items-center text-white">
                 <i data-lucide="monitor-play" class="mr-3 text-pink-400"></i> 顯示器進階校準
               </h3>
@@ -299,22 +300,22 @@
                 <i data-lucide="maximize" class="w-4 h-4 mr-2"></i> 全螢幕模式
               </button>
             </div>
-            <button id="btn-exit-fs" onclick="toggleFullscreen()" class="hidden absolute top-6 right-6 z-50 bg-black/70 hover:bg-black text-white px-5 py-2.5 border border-white/20 rounded-xl backdrop-blur-md transition-colors font-medium">退出全螢幕 (Esc)</button>
             
-            <div id="dead-pixel-overlay" onclick="nextPixelColor()" class="hidden fixed inset-0 z-[60] cursor-pointer items-center justify-center bg-black transition-colors duration-200">
+            <button id="btn-exit-fs" onclick="toggleFullscreen()" class="hidden absolute top-6 right-6 z-[80] bg-black/70 hover:bg-black text-white px-5 py-2.5 border border-white/20 rounded-xl backdrop-blur-md transition-colors font-medium">退出全螢幕 (Esc)</button>
+            
+            <!-- 壞點檢測 -->
+            <div id="dead-pixel-overlay" onclick="nextPixelColor()" class="hidden absolute inset-0 z-[60] cursor-pointer items-center justify-center bg-black transition-colors duration-200">
               <div class="bg-black/70 text-white px-6 py-3 rounded-xl border border-white/20 backdrop-blur-md pointer-events-none font-medium">點擊切換顏色 (<span id="dp-counter">1</span>/5)</div>
             </div>
 
-            <!-- 全螢幕 PLUGE 測試圖 (隱藏) -->
-            <div id="pluge-overlay" class="hidden fixed inset-0 z-[60] flex-col items-center justify-center bg-black overflow-hidden">
+            <!-- PLUGE 測試圖 -->
+            <div id="pluge-overlay" class="hidden absolute inset-0 z-[60] flex-col items-center justify-center bg-black overflow-hidden">
               <div class="w-full max-w-4xl h-64 flex border border-white/20">
-                <!-- 黑階調校 -->
                 <div class="flex-1 flex bg-[#030303] relative border-r border-white/20">
                     <div class="w-1/3 bg-[#000000] h-full relative group flex items-center justify-center"><span class="text-[10px] text-white/30 hidden group-hover:block">Super Black (-4%)</span></div>
                     <div class="w-1/3 bg-[#040404] h-full relative group flex items-center justify-center"><span class="text-[10px] text-white/30 hidden group-hover:block">Black (0%)</span></div>
                     <div class="w-1/3 bg-[#0a0a0a] h-full relative group flex items-center justify-center"><span class="text-[10px] text-white/30 hidden group-hover:block">Dark Gray (+4%)</span></div>
                 </div>
-                <!-- 白階調校 -->
                 <div class="flex-1 flex bg-[#fafafa] relative">
                     <div class="w-1/3 bg-[#f5f5f5] h-full relative group flex items-center justify-center"><span class="text-[10px] text-black/30 hidden group-hover:block">Light Gray (96%)</span></div>
                     <div class="w-1/3 bg-[#fcfcfc] h-full relative group flex items-center justify-center"><span class="text-[10px] text-black/30 hidden group-hover:block">White (100%)</span></div>
@@ -322,11 +323,48 @@
                 </div>
               </div>
               <p class="text-white mt-8 text-sm max-w-lg text-center opacity-70">調校亮度 (Brightness)：直到剛好看不到最左邊的黑色線條。<br>調校對比 (Contrast)：直到能清晰分辨右邊三條白色線條。</p>
-              <button onclick="endPlugeTest()" class="absolute top-6 right-6 bg-black/80 hover:bg-black border border-white/20 text-white px-5 py-2.5 rounded-xl backdrop-blur-md transition-colors">退出 PLUGE (Esc)</button>
+              <button onclick="endPlugeTest()" class="absolute top-6 right-6 bg-black/80 hover:bg-black border border-white/20 text-white px-5 py-2.5 rounded-xl backdrop-blur-md transition-colors z-[70]">退出 PLUGE (Esc)</button>
             </div>
 
-            <div class="space-y-8">
-              <!-- 動態殘影 -->
+            <!-- FIX: 將對齊網格移入 display-container，並加入 Safe Area 百分比 -->
+            <div id="grid-overlay" class="hidden absolute inset-0 z-[60] alignment-grid flex-col items-center justify-center overflow-hidden">
+              <!-- 5% Action Safe Area -->
+              <div class="absolute inset-[5%] border-[3px] border-yellow-500/80 pointer-events-none flex items-start justify-start p-2">
+                 <span class="text-yellow-500/80 text-lg font-bold drop-shadow-md">95% Action Safe</span>
+              </div>
+              <!-- 10% Title Safe Area -->
+              <div class="absolute inset-[10%] border-[2px] border-red-500/80 pointer-events-none flex items-start justify-start p-2">
+                 <span class="text-red-500/80 text-lg font-bold drop-shadow-md">90% Title Safe</span>
+              </div>
+              
+              <!-- 中心瞄準點 (不依賴固定 px，改用 vh) -->
+              <div class="w-[60vmin] h-[60vmin] border-2 border-white rounded-full flex items-center justify-center relative shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                <div class="w-[30vmin] h-[30vmin] border-2 border-red-500 rounded-full flex items-center justify-center relative">
+                  <div class="absolute w-full h-[1px] bg-red-500"></div><div class="absolute h-full w-[1px] bg-red-500"></div>
+                </div>
+              </div>
+              <button onclick="endGridTest()" class="absolute top-6 right-6 bg-black/80 hover:bg-black border border-white/20 text-white px-5 py-2.5 rounded-xl backdrop-blur-md transition-colors z-[70]">退出網格 (Esc)</button>
+            </div>
+
+            <!-- FIX: 將 Chroma 移入 display-container -->
+            <div id="chroma-overlay" class="hidden absolute inset-0 z-[60] flex-col items-center justify-center overflow-hidden" style="background: repeating-linear-gradient(to bottom, #ff0000, #ff0000 1px, #0000ff 1px, #0000ff 2px);">
+                <div class="bg-black/80 p-8 rounded-2xl border border-white/20 backdrop-blur-md text-center max-w-2xl mx-4 shadow-2xl relative z-10">
+                    <h2 class="text-white text-5xl md:text-6xl font-bold mb-4 tracking-widest" style="text-shadow: 2px 2px 0px #ff0000, -2px -2px 0px #0000ff;">4:4:4 CHROMA</h2>
+                    <p class="text-slate-300 text-sm md:text-base leading-relaxed">如果你見到文字邊緣或背景線條出現模糊、起格(鋸齒)、或者有灰色雜訊，代表影像信號被壓縮至 4:2:2 或 4:2:0。<br>完美嘅 4:4:4 傳輸應該係極致清晰嘅純淨紅藍色。</p>
+                </div>
+                <button onclick="endChromaTest()" class="absolute top-6 right-6 bg-black/80 hover:bg-black border border-white/20 text-white px-5 py-2.5 rounded-xl backdrop-blur-md transition-colors shadow-lg z-[70]">退出 Chroma (Esc)</button>
+            </div>
+
+            <!-- LED 拼接縫隙檢測圖 -->
+            <div id="led-seam-overlay" class="hidden absolute inset-0 z-[60] led-seam-pattern flex-col items-center justify-center overflow-hidden">
+                <div class="bg-black/80 p-6 rounded-2xl border border-white/20 backdrop-blur-md text-center shadow-2xl relative z-10 mx-4 max-w-xl">
+                    <h2 class="text-white text-2xl md:text-3xl font-bold mb-2">LED 模組拼接檢測 (Seam Test)</h2>
+                    <p class="text-slate-300 text-sm">高密度的 1px 像素級網格。如果 LED 箱體之間存在物理高低差、拼接縫隙過大或過小，此圖案會於接縫處產生明顯的視覺斷層或摩爾紋。</p>
+                </div>
+                <button onclick="endLedSeamTest()" class="absolute top-6 right-6 bg-black/80 hover:bg-black border border-white/20 text-white px-5 py-2.5 rounded-xl backdrop-blur-md transition-colors shadow-lg z-[70]">退出檢測 (Esc)</button>
+            </div>
+
+            <div class="space-y-8 relative z-10">
               <div>
                 <h4 class="display-title text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">刷新率與殘影 (UFO Test)</h4>
                 <div id="ufo-container" class="relative w-full h-20 bg-slate-950 rounded-xl overflow-hidden border border-slate-800 shadow-inner animate-ufo">
@@ -336,36 +374,51 @@
                 </div>
               </div>
 
-              <!-- 對比度與灰階 -->
               <div>
                 <h4 class="display-title text-sm font-semibold text-slate-400 mb-3 uppercase tracking-wider">連續灰階漸變 (Color Banding)</h4>
                 <div id="gray-container" class="w-full h-16 rounded-xl grayscale-gradient border border-slate-700 shadow-inner"></div>
               </div>
 
-              <!-- 全螢幕測試按鈕 -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
                 <button id="btn-start-dp" onclick="startDeadPixelTest()" class="w-full py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-white rounded-xl font-semibold flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-lg">
                   <i data-lucide="pipette" class="w-5 h-5 mr-2 text-pink-400"></i> 壞點檢測
                 </button>
                 <button id="btn-start-grid" onclick="startGridTest()" class="w-full py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-white rounded-xl font-semibold flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-lg">
-                  <i data-lucide="grid" class="w-5 h-5 mr-2 text-pink-400"></i> 對齊網格
+                  <i data-lucide="grid" class="w-5 h-5 mr-2 text-pink-400"></i> 幾何對齊網格
                 </button>
                 <button id="btn-start-pluge" onclick="startPlugeTest()" class="w-full py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-white rounded-xl font-semibold flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-lg">
-                  <i data-lucide="contrast" class="w-5 h-5 mr-2 text-pink-400"></i> PLUGE 校準
+                  <i data-lucide="contrast" class="w-5 h-5 mr-2 text-pink-400"></i> PLUGE 黑白階校準
                 </button>
                 <button id="btn-start-chroma" onclick="startChromaTest()" class="w-full py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-white rounded-xl font-semibold flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-lg">
                   <i data-lucide="palette" class="w-5 h-5 mr-2 text-pink-400"></i> Chroma 抽樣測試
                 </button>
+                <button id="btn-start-led" onclick="startLedSeamTest()" class="w-full py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-500 text-white rounded-xl font-semibold flex items-center justify-center transition-all hover:-translate-y-1 hover:shadow-lg md:col-span-2">
+                  <i data-lucide="layout-grid" class="w-5 h-5 mr-2 text-blue-400"></i> LED 模組拼接檢測 (Cabinet Seam Test)
+                </button>
               </div>
 
-              <!-- 投影機 Throw Ratio 計算 -->
-              <div class="mt-4 bg-slate-950/50 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row items-center gap-4 shadow-inner">
-                 <span class="text-sm font-semibold text-white flex items-center whitespace-nowrap"><i data-lucide="projector" class="w-4 h-4 mr-2 text-pink-400"></i> 投影距離驗算</span>
-                 <div class="flex flex-1 gap-2 w-full">
-                    <div class="flex-1"><label class="text-[10px] text-slate-400">幕布寬度 (米)</label><input type="number" id="throw-width" oninput="calcThrowDistance()" value="3" class="w-full bg-slate-800 text-white text-xs p-2 rounded outline-none border border-slate-700 mt-1 focus:border-pink-500"></div>
-                    <div class="flex-1"><label class="text-[10px] text-slate-400">鏡頭 Throw Ratio (投射比)</label><input type="number" id="throw-ratio" oninput="calcThrowDistance()" value="1.2" step="0.1" class="w-full bg-slate-800 text-white text-xs p-2 rounded outline-none border border-slate-700 mt-1 focus:border-pink-500"></div>
-                 </div>
-                 <div class="text-right text-sm text-slate-400 whitespace-nowrap">安裝距離應為:<br><span id="throw-result" class="text-xl font-bold text-pink-400 drop-shadow-sm">3.60 米</span></div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <!-- 投影機 Throw Ratio 計算 -->
+                  <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800 flex flex-col gap-4 shadow-inner">
+                     <span class="text-sm font-semibold text-white flex items-center whitespace-nowrap"><i data-lucide="projector" class="w-4 h-4 mr-2 text-pink-400"></i> 投影距離驗算</span>
+                     <div class="flex gap-2 w-full">
+                        <div class="flex-1"><label class="text-[10px] text-slate-400">幕布寬度 (米)</label><input type="number" id="throw-width" oninput="calcThrowDistance()" value="3" class="w-full bg-slate-800 text-white text-xs p-2 rounded outline-none border border-slate-700 mt-1 focus:border-pink-500 transition-colors"></div>
+                        <div class="flex-1"><label class="text-[10px] text-slate-400">鏡頭 Throw Ratio</label><input type="number" id="throw-ratio" oninput="calcThrowDistance()" value="1.2" step="0.1" class="w-full bg-slate-800 text-white text-xs p-2 rounded outline-none border border-slate-700 mt-1 focus:border-pink-500 transition-colors"></div>
+                     </div>
+                     <div class="text-right text-sm text-slate-400 whitespace-nowrap mt-auto">安裝距離應為:<br><span id="throw-result" class="text-xl font-bold text-pink-400 drop-shadow-sm transition-all">3.60 米</span></div>
+                  </div>
+
+                  <!-- LED Wall 觀看距離計算 -->
+                  <div class="bg-slate-950/50 p-4 rounded-xl border border-slate-800 flex flex-col gap-4 shadow-inner">
+                     <span class="text-sm font-semibold text-white flex items-center whitespace-nowrap"><i data-lucide="monitor-speaker" class="w-4 h-4 mr-2 text-blue-400"></i> LED 牆觀看距離評估</span>
+                     <div class="flex gap-2 w-full">
+                        <div class="flex-1"><label class="text-[10px] text-slate-400">Pixel Pitch 間距 (mm)</label><input type="number" id="led-pitch" oninput="calcLedDistance()" value="1.5" step="0.1" class="w-full bg-slate-800 text-white text-xs p-2 rounded outline-none border border-slate-700 mt-1 focus:border-blue-500 transition-colors"></div>
+                     </div>
+                     <div class="text-right text-sm text-slate-400 whitespace-nowrap mt-auto flex justify-between">
+                         <div class="text-left"><span class="text-[10px] text-slate-500">最近觀看距離</span><br><span id="led-min-dist" class="text-base font-bold text-slate-300">1.50 米</span></div>
+                         <div><span class="text-[10px] text-slate-500">最佳觀看距離</span><br><span id="led-opt-dist" class="text-xl font-bold text-blue-400 drop-shadow-sm transition-all">3.75 米</span></div>
+                     </div>
+                  </div>
               </div>
             </div>
           </div>
@@ -407,7 +460,6 @@
         <!-- ================= 5. 鍵鼠測試 Tab ================= -->
         <div id="tab-io" class="tab-content space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- 滑鼠回報率 -->
             <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-xl shadow-2xl flex flex-col">
               <h3 class="text-lg font-bold mb-2 flex items-center text-white">
                 <i data-lucide="mouse-pointer-2" class="mr-3 text-orange-400"></i> 滑鼠回報率
@@ -420,7 +472,6 @@
               </div>
             </div>
 
-            <!-- 鍵盤防鬼鍵 -->
             <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-xl shadow-2xl flex flex-col">
               <h3 class="text-lg font-bold mb-2 flex items-center text-white">
                 <i data-lucide="keyboard" class="mr-3 text-pink-400"></i> 防鬼鍵 (N-Key)
@@ -440,7 +491,6 @@
         <!-- ================= 6. 導播測試 Tab ================= -->
         <div id="tab-broadcast" class="tab-content space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- 影音同步測試 -->
             <div class="bg-slate-900/60 p-8 rounded-2xl border border-slate-700/50 backdrop-blur-xl shadow-2xl md:col-span-2">
               <h3 class="text-xl font-bold mb-3 flex items-center text-white">
                 <i data-lucide="clapperboard" class="mr-3 text-amber-400"></i> 影音同步測試 (Lip-Sync)
@@ -461,7 +511,6 @@
               </div>
             </div>
 
-            <!-- 廣播級輸出 -->
             <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-xl shadow-2xl flex flex-col">
               <h3 class="text-lg font-bold mb-2 flex items-center text-white">
                 <i data-lucide="test-tube" class="mr-3 text-indigo-400"></i> SMPTE 測試圖
@@ -472,7 +521,6 @@
               </button>
             </div>
             
-            <!-- 控台時鐘 -->
             <div class="bg-slate-900/60 p-6 rounded-2xl border border-slate-700/50 backdrop-blur-xl shadow-2xl flex flex-col">
               <h3 class="text-lg font-bold mb-2 flex items-center text-white">
                 <i data-lucide="clock" class="mr-3 text-emerald-400"></i> 控台時鐘
@@ -562,7 +610,7 @@
                  <select id="http-method" class="bg-slate-800 text-white text-xs rounded-lg px-2 border border-slate-700 outline-none w-20"><option>GET</option><option>POST</option><option>PUT</option></select>
                  <input type="text" id="http-url" class="flex-1 bg-slate-950 border border-slate-700 rounded-lg p-2 text-xs text-white outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500" placeholder="http://192.168.1.10/api/power">
               </div>
-              <textarea id="http-body" class="w-full h-16 bg-slate-950 border border-slate-700 rounded-lg p-2 text-[10px] text-slate-300 font-mono mb-3 outline-none resize-none shadow-inner focus:border-purple-500 focus:ring-1 focus:ring-purple-500" placeholder="Request Body (JSON 格式) - 僅 POST/PUT 適用..."></textarea>
+              <textarea id="http-body" class="w-full h-16 bg-slate-950 border border-slate-700 rounded-lg p-2 text-[10px] text-slate-300 font-mono mb-3 outline-none resize-none shadow-inner custom-scrollbar focus:border-purple-500 focus:ring-1 focus:ring-purple-500" placeholder="Request Body (JSON 格式) - 僅 POST/PUT 適用..."></textarea>
               <button onclick="sendHttpRequest()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold rounded-lg transition-all mb-3 shadow-md"><i data-lucide="send" class="w-3 h-3 inline mr-1 relative -top-0.5"></i> 發送 Request</button>
               
               <textarea id="http-res" readonly class="w-full flex-1 bg-slate-950 border border-slate-700 rounded-lg p-2 text-[10px] text-slate-400 font-mono outline-none resize-none shadow-inner custom-scrollbar" placeholder="Response 接收區..."></textarea>
@@ -581,14 +629,14 @@
           <p class="text-xs text-slate-400 mb-4">請針對當前測試項目選擇結果，以便生成最終報告。</p>
           
           <div id="status-panel-content" class="space-y-4">
-             <!-- JS 將根據當前 Tab 動態更新這裡的內容 -->
+             <!-- JS 動態更新 -->
           </div>
         </div>
       </div>
 
     </main>
 
-    <!-- 隱藏的全螢幕元素 -->
+    <!-- SMPTE & Clock Fullscreen (These remain global since they aren't bound to #display-container) -->
     <div id="smpte-fullscreen" class="hidden fixed inset-0 z-[70] flex-col bg-black">
       <div class="smpte-top">
         <div style="background:#c0c0c0; flex:1"></div><div style="background:#c0c000; flex:1"></div><div style="background:#00c0c0; flex:1"></div><div style="background:#00c000; flex:1"></div><div style="background:#c000c0; flex:1"></div><div style="background:#c00000; flex:1"></div><div style="background:#0000c0; flex:1"></div>
@@ -609,26 +657,6 @@
     
     <div id="clock-fullscreen" class="hidden fixed inset-0 z-[70] bg-black items-center justify-center">
       <div id="fs-clock-time" class="text-[18vw] font-mono text-emerald-400 font-bold tracking-tight drop-shadow-[0_0_25px_rgba(52,211,153,0.3)]">00:00:00</div>
-    </div>
-
-    <!-- 幾何對齊網格 -->
-    <div id="grid-overlay" class="hidden fixed inset-0 z-[60] alignment-grid flex-col items-center justify-center">
-      <div class="absolute inset-0 border-[4px] border-yellow-500/80 m-4 pointer-events-none"></div> <!-- Safe Area -->
-      <div class="w-[80vh] h-[80vh] border-2 border-white rounded-full flex items-center justify-center relative shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-        <div class="w-[40vh] h-[40vh] border-2 border-red-500 rounded-full flex items-center justify-center relative">
-          <div class="absolute w-full h-[1px] bg-red-500"></div><div class="absolute h-full w-[1px] bg-red-500"></div>
-        </div>
-      </div>
-      <button onclick="endGridTest()" class="absolute top-6 right-6 bg-black/80 hover:bg-black border border-white/20 text-white px-5 py-2.5 rounded-xl backdrop-blur-md transition-colors">退出網格 (Esc)</button>
-    </div>
-
-    <!-- Chroma Overlay -->
-    <div id="chroma-overlay" class="hidden fixed inset-0 z-[60] flex-col items-center justify-center overflow-hidden" style="background: repeating-linear-gradient(to bottom, #ff0000, #ff0000 1px, #0000ff 1px, #0000ff 2px);">
-        <div class="bg-black/80 p-8 rounded-2xl border border-white/20 backdrop-blur-md text-center max-w-2xl mx-4 shadow-2xl">
-            <h2 class="text-white text-5xl font-bold mb-4 tracking-widest" style="text-shadow: 2px 2px 0px #ff0000, -2px -2px 0px #0000ff;">4:4:4 CHROMA</h2>
-            <p class="text-slate-300 text-base leading-relaxed">如果你見到文字邊緣或背景線條出現模糊、起格(鋸齒)、或者有灰色雜訊，代表影像信號被壓縮至 4:2:2 或 4:2:0。<br>完美嘅 4:4:4 傳輸應該係極致清晰嘅純淨紅藍色。</p>
-        </div>
-        <button onclick="endChromaTest()" class="absolute top-6 right-6 bg-black/80 hover:bg-black border border-white/20 text-white px-5 py-2.5 rounded-xl backdrop-blur-md transition-colors shadow-lg">退出 Chroma (Esc)</button>
     </div>
 
     <!-- 拍照存證 Modal -->
@@ -668,29 +696,38 @@
   <script>
     lucide.createIcons();
 
-    // --- 狀態管理 (支援報告與 Progress) ---
+    /* ================= Toast Notification System ================= */
+    function showToast(msg, type = 'error') {
+       const box = document.createElement('div');
+       box.className = `px-4 py-3 rounded-lg text-white text-sm font-medium shadow-lg transition-all duration-300 transform translate-y-4 opacity-0 flex items-center ${type === 'success' ? 'bg-emerald-600' : (type === 'error' ? 'bg-red-600' : 'bg-slate-700')}`;
+       box.innerHTML = `<i data-lucide="${type==='success'?'check-circle':(type==='error'?'alert-triangle':'info')}" class="w-4 h-4 mr-2"></i> ${msg}`;
+       document.getElementById('toast-container').appendChild(box);
+       lucide.createIcons({root: box});
+       requestAnimationFrame(() => box.classList.remove('translate-y-4', 'opacity-0'));
+       setTimeout(() => {
+           box.classList.add('opacity-0', 'translate-y-2');
+           setTimeout(() => box.remove(), 300);
+       }, 3500);
+    }
+
+    // --- 狀態管理 ---
     const TABS = ['audio', 'camera', 'display', 'network', 'io', 'broadcast', 'edid', 'control'];
     const tabNames = {audio:'音頻', camera:'視訊', display:'顯示器', network:'網絡', io:'鍵鼠', broadcast:'導播', edid:'EDID', control:'中控'};
     
-    // 儲存每個 Tab 嘅驗收狀態: status (pass/fail/na/null), remark, autoData, photo
     const acceptanceState = {};
     TABS.forEach(t => acceptanceState[t] = { status: null, remark: '', autoData: {}, photo: null });
 
     let currentTabId = 'audio';
 
-    function initAcceptancePanel() {
-        switchTab('audio'); // 預設啟動
-    }
+    function initAcceptancePanel() { switchTab('audio'); }
 
     function switchTab(tabId) {
-      // 清理舊 Tab 邏輯
-      stopAudio();
+      stopAudioPlayback();
       if(tabId !== 'camera') stopCamTest(); 
       if (document.fullscreenElement) document.exitFullscreen();
       toggleIOListeners(tabId === 'io');
       if(tabId !== 'broadcast' && typeof stopAutoPulse === 'function') stopAutoPulse();
 
-      // UI 切換
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.getElementById('tab-' + tabId).classList.add('active');
       
@@ -709,7 +746,6 @@
     function renderStatusPanel(tabId) {
         const panel = document.getElementById('status-panel-content');
         const state = acceptanceState[tabId];
-        
         let html = `
             <div class="mb-3">
                 <span class="text-sm font-semibold text-white">${tabNames[tabId]} 項目評估</span>
@@ -745,9 +781,7 @@
         updateProgress();
     }
     
-    function saveRemark(tabId, val) {
-        acceptanceState[tabId].remark = val;
-    }
+    function saveRemark(tabId, val) { acceptanceState[tabId].remark = val; }
 
     function updateProgress() {
         let completed = 0;
@@ -756,29 +790,29 @@
             if(acceptanceState[t].status) {
                 completed++;
                 badge.className = `absolute top-2 right-2 w-2 h-2 rounded-full ${acceptanceState[t].status==='pass'?'bg-emerald-500':(acceptanceState[t].status==='fail'?'bg-red-500':'bg-slate-400')} shadow-[0_0_8px_currentColor]`;
-            } else {
-                badge.className = `absolute top-2 right-2 w-2 h-2 rounded-full bg-slate-600`;
-            }
+            } else badge.className = `absolute top-2 right-2 w-2 h-2 rounded-full bg-slate-600`;
         });
         document.getElementById('overall-progress').innerText = `${completed} / ${TABS.length}`;
     }
 
-    // ================= 1. 音頻邏輯 (加入 Phase & Pink Noise) =================
+    // ================= 1. 音頻邏輯 (已修復 Phase Test & Context Limit) =================
     let audioCtx = null, osc = null, noiseSrc = null, activeAudio = null;
 
     function initAudio() {
-      if(audioCtx) stopAudio();
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if(!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } else if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+      }
+      stopAudioPlayback(); // 重置現有節點
     }
     
-    function stopAudio() {
+    function stopAudioPlayback() {
       if (osc) { osc.stop(); osc.disconnect(); osc = null; }
       if (noiseSrc) { noiseSrc.stop(); noiseSrc.disconnect(); noiseSrc = null; }
-      if (audioCtx) { audioCtx.close(); audioCtx = null; }
-      activeAudio = null;
       document.querySelectorAll('.audio-btn').forEach(btn => btn.classList.remove('ring-2', 'ring-blue-500', 'border-blue-500'));
       document.getElementById('btn-audio-stop').disabled = true;
-      stopRTA();
+      activeAudio = null;
     }
     
     function setAudioActive(btnId) {
@@ -803,30 +837,25 @@
     function playPhaseTest(inPhase) {
       initAudio();
       osc = audioCtx.createOscillator();
-      osc.type = 'sawtooth'; osc.frequency.value = 400; // 用鋸齒波聽相位比較明顯
+      osc.type = 'sawtooth'; osc.frequency.value = 400;
       
-      const splitter = audioCtx.createChannelSplitter(2);
       const merger = audioCtx.createChannelMerger(2);
-      
       const gainL = audioCtx.createGain();
       const gainR = audioCtx.createGain();
       
       gainL.gain.value = 0.3;
-      gainR.gain.value = inPhase ? 0.3 : -0.3; // 反相即係將一邊極性反轉
+      // FIX: 如果 inPhase 係 false，將右聲道相位反轉 (Gain = -0.3)
+      gainR.gain.value = inPhase ? 0.3 : -0.3;
       
-      osc.connect(splitter);
-      splitter.connect(gainL, 0); // 左聲道
-      splitter.connect(gainR, 0); // (強制用單聲道來源分兩路) -> 因為 oscillator 預設單聲道，直接連 gain 較簡單
-      
-      // 重新寫連線邏輯
-      osc.disconnect();
+      // 將單一 Oscilllator 聲音同時分派俾左右兩組 Gain (相當於訊號分離)
       osc.connect(gainL);
       osc.connect(gainR);
       
-      gainL.connect(merger, 0, 0);
-      gainR.connect(merger, 0, 1);
-      
+      // 重新匯合 (Merge) 到 destination
+      gainL.connect(merger, 0, 0); // GainL -> 左聲道
+      gainR.connect(merger, 0, 1); // GainR -> 右聲道
       merger.connect(audioCtx.destination);
+      
       osc.start();
       setAudioActive(`btn-audio-${inPhase ? 'inphase' : 'outphase'}`);
     }
@@ -837,7 +866,6 @@
       const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const data = buffer.getChannelData(0);
       
-      // Pink noise 演算法 (Voss-McCartney)
       let b0=0, b1=0, b2=0, b3=0, b4=0, b5=0, b6=0;
       for (let i = 0; i < bufferSize; i++) {
         let white = Math.random() * 2 - 1;
@@ -848,7 +876,7 @@
         b4 = 0.55000 * b4 + white * 0.5329522;
         b5 = -0.7616 * b5 - white * 0.0168980;
         data[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-        data[i] *= 0.11; // 調整音量
+        data[i] *= 0.11;
         b6 = white * 0.115926;
       }
       
@@ -876,19 +904,18 @@
 
     function playSweep() {
       initAudio();
-      osc = audioCtx.createOscillator();
-      osc.type = 'sine';
+      osc = audioCtx.createOscillator(); osc.type = 'sine';
       const gain = audioCtx.createGain(); gain.gain.value = 0.3;
       osc.connect(gain).connect(audioCtx.destination);
       const now = audioCtx.currentTime;
       osc.frequency.setValueAtTime(20, now);
       osc.frequency.exponentialRampToValueAtTime(20000, now + 10);
       osc.start(now); osc.stop(now + 10);
-      osc.onended = () => { if(activeAudio === 'btn-audio-sweep') stopAudio(); };
+      osc.onended = () => { if(activeAudio === 'btn-audio-sweep') stopAudioPlayback(); };
       setAudioActive('btn-audio-sweep');
     }
 
-    // ================= 2. 攝像頭邏輯 =================
+    // ================= 2. 攝像頭邏輯 (已修復 AnimationFrame Memory Leak) =================
     let stream = null, reqAnim = null, camAudioCtx = null;
     async function getDevices() {
       try {
@@ -900,7 +927,6 @@
           if (d.kind === 'videoinput') { opt.text = d.label || `Camera ${vSel.length + 1}`; vSel.appendChild(opt); }
           else if (d.kind === 'audioinput') { opt.text = d.label || `Mic ${aSel.length + 1}`; aSel.appendChild(opt); }
         });
-        
         acceptanceState['camera'].autoData.camName = vSel.options[0]?.text || '無';
         acceptanceState['camera'].autoData.micName = aSel.options[0]?.text || '無';
       } catch (e) {}
@@ -921,35 +947,47 @@
           document.getElementById('video-res').innerText = `- ${res}`;
           acceptanceState['camera'].autoData.res = res;
         };
-        camAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        if(!camAudioCtx) camAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        else if(camAudioCtx.state === 'suspended') camAudioCtx.resume();
+        
         const src = camAudioCtx.createMediaStreamSource(stream), anl = camAudioCtx.createAnalyser();
-        src.connect(anl); const data = new Uint8Array(anl.frequencyBinCount);
+        src.connect(anl); 
+        const data = new Uint8Array(anl.frequencyBinCount);
+        
+        // FIX: 取消上一個循環，避免多次點擊產生多重循環
+        if(reqAnim) { cancelAnimationFrame(reqAnim); reqAnim = null; }
+        
         function updateVol() {
           anl.getByteFrequencyData(data);
           let sum = 0; for(let i=0;i<data.length;i++) sum+=data[i];
           document.getElementById('volume-bar').style.width = `${Math.min(100, (sum/data.length/128)*100)}%`;
           reqAnim = requestAnimationFrame(updateVol);
-        } updateVol();
+        } 
+        updateVol();
       } catch (e) {
-        document.getElementById('cam-error').innerHTML = `存取失敗: ${e.message}`; document.getElementById('cam-error').classList.remove('hidden');
+        document.getElementById('cam-error').innerHTML = `存取失敗: ${e.message}`; 
+        document.getElementById('cam-error').classList.remove('hidden');
+        showToast('無法存取攝像頭，請確認權限', 'error');
       }
     }
     function stopCamTest() {
       if(stream) stream.getTracks().forEach(t=>t.stop()); stream=null;
-      if(camAudioCtx) { camAudioCtx.close(); camAudioCtx=null; }
-      if(reqAnim) cancelAnimationFrame(reqAnim);
+      if(reqAnim) { cancelAnimationFrame(reqAnim); reqAnim = null; }
       document.getElementById('cam-idle').classList.replace('hidden', 'block');
       document.getElementById('cam-active').classList.replace('block', 'hidden');
     }
 
-    // ================= 3. 顯示器邏輯 (加入 PLUGE) =================
+    // ================= 3. 顯示器邏輯 (修復 Fullscreen DOM 及 Cleanup) =================
     const dispBox = document.getElementById('display-container');
     function toggleFullscreen() {
       if(!document.fullscreenElement) dispBox.requestFullscreen(); else document.exitFullscreen();
     }
+    
     document.addEventListener('fullscreenchange', () => {
       const full = !!document.fullscreenElement;
       if(full) {
+        // 全螢幕時讓 container 填滿畫面並隱藏 Header
         dispBox.classList.add('h-screen', 'w-screen', 'fixed', 'top-0', 'left-0', 'z-50', 'rounded-none', 'border-none');
         document.getElementById('display-header').classList.add('hidden');
         document.getElementById('btn-exit-fs').classList.remove('hidden');
@@ -957,7 +995,13 @@
         dispBox.classList.remove('h-screen', 'w-screen', 'fixed', 'top-0', 'left-0', 'z-50', 'rounded-none', 'border-none');
         document.getElementById('display-header').classList.remove('hidden');
         document.getElementById('btn-exit-fs').classList.add('hidden');
-        endDeadPixelTest(); endPlugeTest(); endGridTest();
+        
+        // FIX: 確保所有測試層在退出全螢幕時徹底關閉
+        endDeadPixelTest(); 
+        endPlugeTest(); 
+        endGridTest();
+        endChromaTest();
+        endLedSeamTest();
       }
       acceptanceState['display'].autoData.tested = true;
     });
@@ -977,7 +1021,15 @@
     function startChromaTest() { document.getElementById('chroma-overlay').classList.replace('hidden', 'flex'); if(!document.fullscreenElement) dispBox.requestFullscreen(); }
     function endChromaTest() { document.getElementById('chroma-overlay').classList.replace('flex', 'hidden'); }
 
-    document.addEventListener('keydown', e => { if(e.key==='Escape') { endDeadPixelTest(); endGridTest(); endPlugeTest(); endChromaTest(); stopSmpteOutput(); if(document.fullscreenElement) document.exitFullscreen(); } });
+    function startLedSeamTest() { document.getElementById('led-seam-overlay').classList.replace('hidden', 'flex'); if(!document.fullscreenElement) dispBox.requestFullscreen(); }
+    function endLedSeamTest() { document.getElementById('led-seam-overlay').classList.replace('flex', 'hidden'); }
+
+    document.addEventListener('keydown', e => { 
+      if(e.key==='Escape') { 
+        endDeadPixelTest(); endGridTest(); endPlugeTest(); endChromaTest(); stopSmpteOutput(); endLedSeamTest();
+        if(document.fullscreenElement) document.exitFullscreen(); 
+      } 
+    });
 
     // ================= 4. 網絡邏輯 =================
     async function startPingTest() {
@@ -996,7 +1048,10 @@
         const avg = Math.round(totalTime/pings); valEl.innerText = avg;
         acceptanceState['network'].autoData.ping = `${avg}ms`;
         statEl.innerHTML = avg<50 ? "<span class='text-emerald-400'>連線極佳</span>" : (avg<150 ? "<span class='text-amber-400'>連線良好</span>" : "<span class='text-red-400'>連線較慢</span>");
-      } else statEl.innerHTML = "<span class='text-red-500'>測試失敗</span>";
+      } else {
+        statEl.innerHTML = "<span class='text-red-500'>測試失敗</span>";
+        showToast('網絡Ping測試失敗，請檢查網路連線', 'error');
+      }
     }
 
     // ================= 5. I/O 邏輯 =================
@@ -1018,7 +1073,7 @@
     function onKeyUp(e) { if(!ioActive) return; keysPressed.delete(e.key.toUpperCase()); updateKeys(); }
     function updateKeys() {
       document.getElementById('keys-count').innerText = keysPressed.size;
-      document.getElementById('keys-display').innerHTML = keysPressed.size===0 ? '(未按鍵)' : Array.from(keysPressed).map(k=>`<span class="px-1.5 py-0.5 bg-slate-800 text-white rounded text-[10px]">${k===' '?'SPC':k}</span>`).join('');
+      document.getElementById('keys-display').innerHTML = keysPressed.size===0 ? '(未按鍵)' : Array.from(keysPressed).map(k=>`<span class="px-1.5 py-0.5 bg-slate-800 text-white rounded text-[10px] shadow">${k===' '?'SPC':k}</span>`).join('');
       if(keysPressed.size > (acceptanceState['io'].autoData.keys||0)) acceptanceState['io'].autoData.keys = keysPressed.size;
     }
 
@@ -1046,32 +1101,9 @@
     setInterval(()=>{ const t = new Date().toLocaleTimeString('en-GB',{hour12:false}); const l = document.getElementById('fs-clock-time'); if(l) l.innerText=t; }, 1000);
     function toggleFullscreenClock() { const f = document.getElementById('clock-fullscreen'); f.classList.replace('hidden','flex'); if(f.requestFullscreen) f.requestFullscreen(); }
 
-    // ================= 7. EDID =================
-    async function readVirtualEDID() {
-      const res = document.getElementById('edid-results');
-      if(!('getScreenDetails' in window)) { res.innerHTML = `<div class="p-3 bg-red-900/30 text-red-400 text-xs rounded">不支援 Screen Details API</div>`; return; }
-      try {
-        const details = await window.getScreenDetails(); let h='';
-        details.screens.forEach((s,i) => {
-          h+=`<div class="bg-slate-800 p-3 rounded mb-2 text-xs text-slate-300"><b>${s.label||`Disp ${i+1}`}</b><br>Res: ${s.width}x${s.height} | ${s.colorDepth}-bit</div>`;
-          if(i===0) acceptanceState['edid'].autoData.primary = `${s.width}x${s.height}`;
-        });
-        res.innerHTML = h;
-      } catch(e) { res.innerHTML = `<div class="p-3 bg-red-900/30 text-red-400 text-xs rounded">讀取失敗</div>`; }
-    }
-    function calculateBandwidth() {
-      const res = document.getElementById('calc-res').value.split('x'), w = parseInt(res[0]), h = parseInt(res[1]);
-      const fps = parseInt(document.getElementById('calc-fps').value), bpp = parseInt(document.getElementById('calc-chroma').value);
-      const gbps = ((w*h*1.15 * fps * bpp)/1000000000).toFixed(2);
-      document.getElementById('calc-result-gbps').innerText = gbps + ' Gbps';
-      const req = document.getElementById('calc-result-req');
-      req.innerText = gbps<=14.4 ? 'HDMI 2.0 / DP 1.2' : (gbps<=42.6 ? 'HDMI 2.1 / DP 1.4' : '需壓縮');
-      req.className = `text-[10px] font-semibold text-white inline-block px-2 py-1 rounded ${gbps<=14.4?'bg-emerald-600':(gbps<=42.6?'bg-purple-600':'bg-red-600')}`;
-    } calculateBandwidth();
-
-    // ================= 新增功能邏輯 (RTA, Throw Ratio, Delay, Serial, HTTP, Photo, Save/Load) =================
+    // ================= 新增功能 (RTA, Throw Ratio, Delay, Serial, HTTP, Photo) =================
     
-    // RTA 頻譜分析
+    // RTA 頻譜
     let rtaCtx = null, rtaStream = null, rtaAnalyser = null, rtaAnim = null;
     async function startRTA() {
       try {
@@ -1084,7 +1116,7 @@
         drawRTA();
         document.getElementById('rta-btn-start').classList.add('hidden');
         document.getElementById('rta-btn-stop').classList.remove('hidden');
-      } catch(e) { alert('無法存取麥克風: ' + e.message); }
+      } catch(e) { showToast('無法存取麥克風，請檢查系統權限。', 'error'); }
     }
     function stopRTA() {
       if(rtaStream) rtaStream.getTracks().forEach(t=>t.stop()); rtaStream = null;
@@ -1104,14 +1136,13 @@
       const dataArray = new Uint8Array(bufferLength);
       rtaAnalyser.getByteFrequencyData(dataArray);
       
-      ctx.fillStyle = '#020617'; // slate-950
+      ctx.fillStyle = '#020617';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       const barWidth = (canvas.width / bufferLength) * 2.5;
       let barHeight, x = 0;
       
       for(let i = 0; i < bufferLength; i++) {
         barHeight = (dataArray[i] / 255) * canvas.height;
-        // 頻譜顏色漸變：由紫到藍到青
         ctx.fillStyle = `rgb(${dataArray[i]+50}, 100, 250)`;
         ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
         x += barWidth + 1;
@@ -1119,7 +1150,7 @@
       rtaAnim = requestAnimationFrame(drawRTA);
     }
 
-    // Delay & Throw Calc
+    // Delay & Throw Calc (FIX: Handle empty string/NaN)
     function calculateAudioDelay() {
        const dist = parseFloat(document.getElementById('delay-dist').value) || 0;
        const temp = parseFloat(document.getElementById('delay-temp').value) || 20;
@@ -1128,15 +1159,35 @@
     } calculateAudioDelay();
 
     function calcThrowDistance() {
-       const width = parseFloat(document.getElementById('throw-width').value) || 0;
-       const ratio = parseFloat(document.getElementById('throw-ratio').value) || 0;
-       document.getElementById('throw-result').innerText = (width * ratio).toFixed(2) + ' 米';
+       const width = parseFloat(document.getElementById('throw-width').value);
+       const ratio = parseFloat(document.getElementById('throw-ratio').value);
+       const res = document.getElementById('throw-result');
+       // FIX: 處理空值情況
+       if (isNaN(width) || isNaN(ratio)) {
+           res.innerText = '-- 米';
+       } else {
+           res.innerText = (width * ratio).toFixed(2) + ' 米';
+       }
     } calcThrowDistance();
+
+    function calcLedDistance() {
+       const pitch = parseFloat(document.getElementById('led-pitch').value);
+       const minRes = document.getElementById('led-min-dist');
+       const optRes = document.getElementById('led-opt-dist');
+       if (isNaN(pitch) || pitch <= 0) {
+           minRes.innerText = '-- 米';
+           optRes.innerText = '-- 米';
+       } else {
+           // 業界一般標準：最近距離(m) ≈ Pitch(mm) x 1，最佳距離(m) ≈ Pitch(mm) x 2.5
+           minRes.innerText = (pitch * 1).toFixed(2) + ' 米';
+           optRes.innerText = (pitch * 2.5).toFixed(2) + ' 米';
+       }
+    } calcLedDistance();
 
     // Serial RS-232
     let serialPort = null, serialReader = null;
     async function connectSerial() {
-      if(!('serial' in navigator)) { alert('您的瀏覽器不支援 Web Serial API (請使用最新版 Chrome 或 Edge)'); return; }
+      if(!('serial' in navigator)) { showToast('您的瀏覽器不支援 Web Serial API', 'error'); return; }
       try {
         serialPort = await navigator.serial.requestPort();
         const baud = parseInt(document.getElementById('serial-baud').value);
@@ -1146,7 +1197,8 @@
         st.className = 'text-emerald-400 font-bold';
         readSerialLoop();
         acceptanceState['control'].autoData.serial = `Baud: ${baud}`;
-      } catch(e) { alert('連接失敗或使用者取消: ' + e.message); }
+        showToast('串口連接成功', 'success');
+      } catch(e) { showToast('連接失敗或使用者取消', 'error'); }
     }
     async function disconnectSerial() {
       if(serialReader) await serialReader.cancel();
@@ -1164,22 +1216,28 @@
             if (done) break;
             const rx = document.getElementById('serial-rx');
             rx.value += new TextDecoder().decode(value);
-            rx.scrollTop = rx.scrollHeight; // Auto-scroll
+            rx.scrollTop = rx.scrollHeight;
           }
-        } catch (error) { console.error('Serial read error:', error); }
+        } catch (error) { console.error(error); }
         finally { serialReader.releaseLock(); }
       }
     }
     async function sendSerial() {
-      if(!serialPort || !serialPort.writable) { alert('請先連接 Serial Port'); return; }
+      if(!serialPort || !serialPort.writable) { showToast('請先連接 Serial Port', 'error'); return; }
       const text = document.getElementById('serial-tx').value;
       if(!text) return;
       const format = document.getElementById('serial-format').value;
       const writer = serialPort.writable.getWriter();
       try {
         if(format === 'hex') {
-          // 將 HEX string "FF 00 A1" 轉 byte array
-          const bytes = new Uint8Array((text.match(/[\da-f]{2}/gi) || []).map(h => parseInt(h, 16)));
+          // FIX: 驗證 HEX 長度及格式
+          let cleanHex = text.replace(/[^0-9A-Fa-f]/g, '');
+          if (cleanHex.length % 2 !== 0) {
+             showToast('HEX 指令長度必須為偶數字符 (例如 FF 00)', 'error');
+             writer.releaseLock();
+             return;
+          }
+          const bytes = new Uint8Array((cleanHex.match(/[\da-f]{2}/gi) || []).map(h => parseInt(h, 16)));
           await writer.write(bytes);
         } else {
           let data = text;
@@ -1187,21 +1245,29 @@
           if(format === 'ascii_crlf') data += '\r\n';
           await writer.write(new TextEncoder().encode(data));
         }
-      } catch(e) { alert('指令發送失敗: ' + e.message); }
+      } catch(e) { showToast('指令發送失敗: ' + e.message, 'error'); }
       finally { writer.releaseLock(); }
     }
 
-    // HTTP Request
+    // HTTP Request (FIX: 加入 JSON 格式檢查)
     async function sendHttpRequest() {
        const url = document.getElementById('http-url').value, 
              method = document.getElementById('http-method').value, 
              body = document.getElementById('http-body').value, 
              resBox = document.getElementById('http-res');
-       if(!url) { alert('請輸入目標 API URL'); return; }
+       
+       if(!url) { showToast('請輸入目標 API URL', 'error'); return; }
        resBox.value = "Sending request... Please wait.";
+       
        try {
          const options = { method: method };
          if(method !== 'GET' && method !== 'HEAD' && body) { 
+            // 驗證 JSON 結構
+            try { JSON.parse(body); } catch(err) {
+                showToast('Request Body JSON 格式錯誤', 'error');
+                resBox.value = '發送失敗：Request Body 不是有效的 JSON 格式。';
+                return;
+            }
             options.body = body; 
             options.headers = { 'Content-Type': 'application/json' }; 
          }
@@ -1216,36 +1282,36 @@
        }
     }
 
-    // 拍照存證 (Photo Evidence)
+    // Photo Evidence (FIX: Handle promise gracefully, only show modal if allowed)
     let photoStream = null, photoTabTarget = null;
     async function openPhotoModal(tabId) {
       photoTabTarget = tabId;
-      document.getElementById('photo-modal').classList.replace('hidden', 'flex');
       try {
-        // 優先請求後置鏡頭 (環境相機)
         photoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         document.getElementById('photo-video-stream').srcObject = photoStream;
-      } catch(e) { alert('無法啟動相機 (請確保設備有鏡頭並已授權): ' + e.message); }
+        // 等待成功取得權限後，先顯示 Modal
+        document.getElementById('photo-modal').classList.replace('hidden', 'flex');
+      } catch(e) { showToast('無法啟動相機，請確保設備擁有鏡頭並已授權存取。', 'error'); }
     }
+    
     function closePhotoModal() {
       document.getElementById('photo-modal').classList.replace('flex', 'hidden');
       if(photoStream) photoStream.getTracks().forEach(t=>t.stop());
       photoStream = null;
     }
+    
     function takePhoto() {
       const video = document.getElementById('photo-video-stream');
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth; canvas.height = video.videoHeight;
-      // 繪製截圖 (Scale -1 是因為 video preview 做了鏡像，如果用 environment camera 其實不需要，但統一處理)
       const ctx = canvas.getContext('2d');
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
+      ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
       ctx.drawImage(video, 0, 0);
-      // 儲存為 JPEG Data URL, 壓縮率 0.6 以節省 PDF 容量
       acceptanceState[photoTabTarget].photo = canvas.toDataURL('image/jpeg', 0.6);
-      closePhotoModal(); 
-      renderStatusPanel(photoTabTarget);
+      closePhotoModal(); renderStatusPanel(photoTabTarget);
+      showToast('照片已儲存至報告記錄', 'success');
     }
+    
     function removePhoto(tabId) { 
       acceptanceState[tabId].photo = null; 
       renderStatusPanel(tabId); 
@@ -1257,29 +1323,51 @@
       const el = document.createElement('a');
       el.setAttribute("href", dataStr);
       el.setAttribute("download", `AV_Diagnostics_Project_${new Date().getTime()}.json`);
-      document.body.appendChild(el); 
-      el.click(); 
-      el.remove();
+      document.body.appendChild(el); el.click(); el.remove();
+      showToast('專案進度已匯出儲存', 'success');
     }
     function triggerLoadProject() { document.getElementById('file-upload-json').click(); }
     function loadProjectJSON(event) {
-      const file = event.target.files[0]; 
-      if (!file) return;
+      const file = event.target.files[0]; if (!file) return;
       const reader = new FileReader();
       reader.onload = e => {
         try {
-          const loaded = JSON.parse(e.target.result);
-          Object.assign(acceptanceState, loaded);
-          renderStatusPanel(currentTabId); 
-          updateProgress(); 
-          alert('✅ 專案進度載入成功！');
-        } catch(err) { alert('❌ 檔案格式錯誤，無法解析 JSON。'); }
+          Object.assign(acceptanceState, JSON.parse(e.target.result));
+          renderStatusPanel(currentTabId); updateProgress(); 
+          showToast('專案進度載入成功！', 'success');
+        } catch(err) { showToast('檔案格式錯誤，無法解析 JSON', 'error'); }
       };
       reader.readAsText(file);
-      event.target.value = ''; // 允許重複選取同一個檔
+      event.target.value = ''; 
     }
 
-    // ================= 匯出 =================
+    // EDID 掃描
+    async function readVirtualEDID() {
+      const res = document.getElementById('edid-results');
+      if(!('getScreenDetails' in window)) { res.innerHTML = `<div class="p-3 bg-red-900/30 text-red-400 text-xs rounded">不支援 Screen Details API</div>`; return; }
+      try {
+        const details = await window.getScreenDetails(); let h='';
+        details.screens.forEach((s,i) => {
+          h+=`<div class="bg-slate-800 p-3 rounded mb-2 text-xs text-slate-300 shadow"><b>${s.label||`Disp ${i+1}`}</b><br>Res: ${s.width}x${s.height} | ${s.colorDepth}-bit</div>`;
+          if(i===0) acceptanceState['edid'].autoData.primary = `${s.width}x${s.height}`;
+        });
+        res.innerHTML = h;
+        showToast('EDID 掃描成功', 'success');
+      } catch(e) { res.innerHTML = `<div class="p-3 bg-red-900/30 text-red-400 text-xs rounded">讀取失敗</div>`; }
+    }
+    
+    // 頻寬計算
+    function calculateBandwidth() {
+      const res = document.getElementById('calc-res').value.split('x'), w = parseInt(res[0]), h = parseInt(res[1]);
+      const fps = parseInt(document.getElementById('calc-fps').value), bpp = parseInt(document.getElementById('calc-chroma').value);
+      const gbps = ((w*h*1.15 * fps * bpp)/1000000000).toFixed(2);
+      document.getElementById('calc-result-gbps').innerText = gbps + ' Gbps';
+      const req = document.getElementById('calc-result-req');
+      req.innerText = gbps<=14.4 ? 'HDMI 2.0 / DP 1.2' : (gbps<=42.6 ? 'HDMI 2.1 / DP 1.4' : '需壓縮');
+      req.className = `text-[10px] font-semibold text-white inline-block px-2 py-1 rounded shadow ${gbps<=14.4?'bg-emerald-600':(gbps<=42.6?'bg-purple-600':'bg-red-600')}`;
+    } calculateBandwidth();
+
+    // Export PDF Report
     function openExportModal() { document.getElementById('export-modal').classList.replace('hidden','flex'); }
     function closeExportModal() { document.getElementById('export-modal').classList.replace('flex','hidden'); }
     function executeExport() {
@@ -1343,6 +1431,7 @@
       const win = window.open('','_blank'); win.document.write(html); win.document.close();
     }
 
+    // Startup Execution
     initAcceptancePanel();
   </script>
 </body>
